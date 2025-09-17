@@ -118,6 +118,8 @@ Route::middleware([
     Route::get('/responsives/{responsive_id}/equipments/{id}/print-promissory-note', [ResponsiveEquipments::class, 'print_promissory_note'] )->name('responsives.equipments.print-promissory-note');
     Route::get('/responsives/{responsive_id}/equipments/{id}/download-promissory-note', [ResponsiveEquipments::class, 'download_promissory_note'] )->name('responsives.equipments.download-promissory-note');
 
+    Route::put('/responsives/{responsive_id}/equipments/{id}/{id_phone}/{new_phone_id}/create-phone-line', [ResponsiveEquipments::class, 'update_phone_line'] )->name('responsives.equipments.create-phone-line');
+
     Route::get('/responsives/datatable', [Responsives::class, 'datatable'] )->name('responsives.datatable');
     Route::resource('/responsives', Responsives::class, [
         'names' => create_route_names( 'responsives' )

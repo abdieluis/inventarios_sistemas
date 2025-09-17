@@ -555,11 +555,14 @@ class ResponsivesController extends Controller {
             'ending'
         ])->find($id);
 
+        $phoneLines = PhoneLine::where('status', 'Disponible')->get();
+
         return Inertia::render('Responsives/Show', [
             'data' => $data,
             'db' => [
                 'endings' => ResponsiveEnding::all(),
             ],
+            'phoneLines' => $phoneLines,
         ]);
 
     }

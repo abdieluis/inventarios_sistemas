@@ -91,6 +91,54 @@ class ResponsiveEquipmentsController extends Controller {
 
     }
 
+    public function update_phone_line( Request $request, int $responsive_id, int $id, int $new_phone_id, int $old_phone_id ){
+
+        // dd($request->all(), $responsive_id, $id, $old_phone_id, $new_phone_id);
+
+        $request->validate([
+            'phone' => ['required', 'integer']
+        ]);
+
+        $row = ResponsiveEquipment::find( $id );
+        $row->phoneline_id = $request['phone'];
+
+        $row->updated_by = $request->user()->id;
+        $row->save();
+
+        $old_phone = \App\Models\Inventory\PhoneLine::find( $old_phone_id );
+        if( $old_phone ){
+            $old_phone->status = 'Disponible';
+            $old_phone->updated_by = $request->user()->id;
+            $old_phone->save();
+        }
+
+        $new_phone = \App\Models\Inventory\PhoneLine::find( $new_phone_id );
+        if( $new_phone ){
+            $new_phone->status = 'Asignada';
+            $new_phone->updated_by = $request->user()->id;
+            $new_phone->save();
+        }
+
+        // if( $row->isClean() ){
+
+        //     session()->flash(
+        //         'flash', [
+        //             'status' => "success",
+        //             'message' => "Pagaré creado correctamente"
+        //         ]
+        //     );
+        return redirect()->route('responsives.show', $row->responsive_id)->with('successMessage', 'Equipment created');
+        // } else {
+        //     session()->flash(
+        //         'flash', [
+        //             'status' => "error",
+        //             'message' => "No se creo el registro"
+        //         ]
+        //     );
+        // }        
+
+    }
+
 
     public function print_promissory_note( Request $request, int $responsive_id, int $id ) {
 
