@@ -1,16 +1,36 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
-import DataTable from 'datatables.net-vue3'
+import DataTable from 'datatables.net-vue3';
 import DataTablesLib from 'datatables.net';
 import 'datatables.net-select';
-
-import { ref, onMounted } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
+import { Inertia } from '@inertiajs/inertia';
+import VueMultiselect from 'vue-multiselect';
+import { nextTick } from 'vue';
 
 DataTable.use(DataTablesLib);
 
-let dtEmployments;
-const tableEmployments = ref();
-let selectedEmploymentOnTable = null;
+const props = defineProps({
+    data: Object,
+    errors: Object,
+    db: Object,
+});
+
+const modalEmployments = ref(false);
+const modalEquipments = ref(false);
+const modalPhonelines = ref(false);
+
+const selectedEmployment = ref(null);
+const selectedEquipments = ref([]);
+const selectedEmploymentOnTable = ref(null);
+const selectedEquipmentsOnTable = ref([]);
+
+const form = reactive({
+    employment: null,
+    equipments: [],
+    start_at: null,
+    accessories: [],
+});
 
 const columnsEmployments = [
     { data: 'employee_number', title: 'No. Empleado' },
@@ -21,19 +41,8 @@ const columnsEmployments = [
 ];
 const optionsEmployments = {
     dom: 'Bfrtip',
-    select: {
-        style: 'single',
-        info: false,
-        toggleable: false
-    },
-    initComplete: function (settings, json) {
-    }
-}
-
-
-let dtEquipments;
-const tableEquipments = ref();
-let selectedEquipmentsOnTable = [];
+    select: { style: 'single', info: false, toggleable: false },
+};
 
 const columnsEquipments = [
     { data: 'id', title: 'ID' },
@@ -45,19 +54,8 @@ const columnsEquipments = [
 ];
 const optionsEquipments = {
     dom: 'Bfrtip',
-    select: {
-        style: 'multi',
-        info: false,
-        toggleable: true
-    },
-    initComplete: function (settings, json) {
-    }
-}
-
-
-let dtPhonelines;
-const tablePhonelines = ref();
-let selectedPhonelinesOnTable = [];
+    select: { style: 'multi', info: false, toggleable: true },
+};
 
 const columnsPhonelines = [
     { data: 'number', title: 'Teléfono' },
@@ -66,134 +64,52 @@ const columnsPhonelines = [
 ];
 const optionsPhonelines = {
     dom: 'Bfrtip',
-    select: {
-        style: 'single',
-        info: false,
-        toggleable: true
-    },
-    initComplete: function (settings, json) {
-    }
-}
+    select: { style: 'single', info: false, toggleable: true },
+};
 
+let dtEmployments, dtEquipments, dtPhonelines;
+const tableEmployments = ref();
+const tableEquipments = ref();
+const tablePhonelines = ref();
 
+onMounted(async () => {
+    await nextTick();
 
-/*onMounted(function () {
-    dtEmployments = tableEmployments.value.dt();
-
-    dtEmployments.on('select', function (e, dt, type, indexes) {
-        if (type === 'row') {
-            selectedEmploymentOnTable = dt.rows(indexes[0]).data();
-            selectedEmploymentOnTable = selectedEmploymentOnTable[0];
-        }
-    });
-
-    if( 1 ){
-        dtEmployments.row(':eq(0)', { page: 'current' }).select();
-        selectedEmploymentOnTable = dtEmployments.row(':eq(0)', { page: 'current' }).data();
-        console.log( selectedEmploymentOnTable );
-    }
-
-    dtEquipments = tableEquipments.value.dt();
-
-    let selectedData = null;
-
-
-    const updateSelectedRows = (e, dt, type, indexes) => {
-
-        selectedEquipmentsOnTable = [];
-        let rows = dt.rows('.selected');
-        dt.rows('.selected').every(function (rowIdx, tableLoop, rowLoop) {
-            let data = dt.rows(rowIdx).data();
-            selectedEquipmentsOnTable.push(data[0]);
-            console.log(selectedEquipmentsOnTable);
-        });
-
-    }
-
-    dtEquipments.on('select', function (e, dt, type, indexes) {
-        if (type === 'row') {
-            updateSelectedRows(e, dt, type, indexes);
-        }
-    });
-
-    dtEquipments.on('deselect', function (e, dt, type, indexes) {
-        if (type === 'row') {
-            updateSelectedRows(e, dt, type, indexes);
-        }
-    });
-
-});*/
-
-onMounted(function () {
+    // Empleados
     if (tableEmployments.value) {
-        dtEmployments = tableEmployments.value.dt();
-
+        dtEmployments = tableEmployments.value.dt;
         dtEmployments.on('select', function (e, dt, type, indexes) {
             if (type === 'row') {
-                selectedEmploymentOnTable = dt.rows(indexes[0]).data();
-                selectedEmploymentOnTable = selectedEmploymentOnTable[0];
+                const data = dt.row(indexes[0]).data();
+                console.log('Empleado seleccionado:', data);
+                selectedEmploymentOnTable.value = data;
             }
         });
     }
 
+    // Equipos
     if (tableEquipments.value) {
-        dtEquipments = tableEquipments.value.dt();
+        dtEquipments = tableEquipments.value.dt;
 
-        let selectedData = null;
-
-        const updateSelectedRows = (e, dt, type, indexes) => {
-            selectedEquipmentsOnTable = [];
-            let rows = dt.rows('.selected');
-            dt.rows('.selected').every(function (rowIdx, tableLoop, rowLoop) {
-                let data = dt.rows(rowIdx).data();
-                selectedEquipmentsOnTable.push(data[0]);
-                console.log(selectedEquipmentsOnTable);
+        const updateSelectedRows = () => {
+            selectedEquipmentsOnTable.value = [];
+            dtEquipments.rows('.selected').every(function (rowIdx) {
+                selectedEquipmentsOnTable.value.push(dtEquipments.row(rowIdx).data());
             });
-        }
+            console.log('Equipos seleccionados:', selectedEquipmentsOnTable.value);
+        };
 
-        dtEquipments.on('select', function (e, dt, type, indexes) {
-            if (type === 'row') {
-                updateSelectedRows(e, dt, type, indexes);
-            }
-        });
-
-        dtEquipments.on('deselect', function (e, dt, type, indexes) {
-            if (type === 'row') {
-                updateSelectedRows(e, dt, type, indexes);
-            }
-        });
+        dtEquipments.on('select', updateSelectedRows);
+        dtEquipments.on('deselect', updateSelectedRows);
     }
 });
 
-/*
-onMounted(function () {
-    dt = table.value.dt();
-
-    dt.on( 'select', function ( e, dt, type, indexes ) {
-        alert( 'DataTables has finished its initialisation.' );
-        if ( type === 'row' ) {
-            var data = table.rows( indexes ).data().pluck( 'id' );
-            // do something with the ID of the selected items
-        }
-    });
-
-    dt.rows().every(function () {
-        let row = this.data();
-        let id = row.id;
-
-        let features = '';
-        for( const property in row.features ){
-        features += `<p class="px-2 py-1 border">${property}: ${row.features[property]}</p>`;
-        }
-
-        //JSON.stringify( row.features );
-        //row.features = `<a class="text-blue-500 px-2 py-1 border bg-gray-50" href="employees/${id}">VER</a> | <a class="text-amber-500 px-2 py-1 border bg-gray-50" href="employees/${id}/edit">EDITAR</a>`;
-        row.features = `<div class="px-2 py-1">${features}</div>`;
-    });
-});
-*/
-
-
+const store = () => {
+    form.equipments = selectedEquipments.value;
+    form.employment = selectedEmployment.value;
+    console.log('Formulario a enviar:', form);
+    Inertia.post(route('responsives.store'), form);
+};
 </script>
 
 <style>
@@ -267,9 +183,12 @@ onMounted(function () {
                                         <button type="button"
                                             class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600"
                                             v-on:click="(modalEmployments = false)">Cancelar</button>
-                                        <button type="button"
-                                            class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-                                            v-on:click="selectedEmployment = selectedEmploymentOnTable, modalEmployments = false">Continuar</button>
+                                        <button type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" @click="
+                                            selectedEmployment = { ...selectedEmploymentOnTable };
+                                        modalEmployments = false
+                                            ">
+                                            Continuar
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -302,10 +221,11 @@ onMounted(function () {
                                         <DataTable :columns="columnsEquipments" :data="db.equipments"
                                             :options="optionsEquipments" ref="tableEquipments"
                                             class="table display w-100" />
-                                        <div v-if="db.employments?.length">
+
+                                        <div v-if="db.equipments?.length">
                                             <ul>
-                                                <li v-for="(item, index) in db.employments" :key="index">
-                                                    <span>{{ item.title }}</span>
+                                                <li v-for="(item, index) in db.equipments" :key="index">
+                                                    <span>{{ item.category_name }}</span>
                                                 </li>
                                             </ul>
                                         </div>
@@ -320,9 +240,12 @@ onMounted(function () {
                                         <button type="button"
                                             class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600"
                                             v-on:click="(modalEquipments = false)">Cancelar</button>
-                                        <button type="button"
-                                            class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-                                            v-on:click="selectedEquipments = selectedEquipmentsOnTable, modalEquipments = false">Continuar</button>
+                                        <button type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" @click="
+                                            selectedEquipments = [...selectedEquipmentsOnTable];
+                                        modalEquipments = false
+                                            ">
+                                            Continuar
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -397,8 +320,10 @@ onMounted(function () {
                                                         d="M10 5a1 1 0 0 1 1 1v3h3a1 1 0 1 1 0 2h-3v3a1 1 0 1 1-2 0v-3H6a1 1 0 1 1 0-2h3V6a1 1 0 0 1 1-1Z" />
                                                 </svg>
                                                 Agregar Responsable
+
                                             </a>
                                         </div>
+
                                         <div v-else>
                                             <div class="flex flex-col items-center md:flex-row md:max-w-xl">
 
@@ -407,7 +332,7 @@ onMounted(function () {
                                                     src="https://www.diaadia.com.pa/sites/default/files/2019-04/cristiano-ronaldo-abdominales-.jpg"
                                                     alt="...">
                                                 <img v-else
-                                                    class="object-cover w-full rounded-t-lg h-32 md:h-auto md:w-24 md:rounded-none md:rounded-l-lg"
+                                                    class="object-cover w-12 h-12 rounded-t-lg md:rounded-none md:rounded-l-lg"
                                                     src="https://img.icons8.com/ios/500/user--v1.png" alt="...">
                                                 <div class="flex flex-col justify-between p-4 leading-normal">
                                                     <h5 class="mb-2 text-lg tracking-tight text-gray-900">
@@ -418,7 +343,7 @@ onMounted(function () {
                                                     </h5>
                                                     <p class="mb-3 font-normal text-gray-600">
                                                         {{ selectedEmployment.title_name }} en {{
-                                                        selectedEmployment.branch_name
+                                                            selectedEmployment.branch_name
                                                         }}
                                                     </p>
                                                 </div>
@@ -447,13 +372,13 @@ onMounted(function () {
                                         <div v-if="(selectedEquipments.length)" class="">
                                             <div v-for="(equipment, index) in selectedEquipments" :key="equipment.id"
                                                 class="flex flex-col items-center md:flex-row md:max-w-xl">
-                                                <img class="object-cover w-full rounded-t-lg h-32 md:h-auto md:w-24 md:rounded-none md:rounded-l-lg"
+                                                <img class="object-cover w-12 h-12 rounded-t-lg md:rounded-none md:rounded-l-lg"
                                                     src="https://img.freepik.com/vector-premium/simulacros-telefono-inteligente-tableta-computadora_389832-395.jpg"
                                                     alt="...">
                                                 <div class="flex flex-col justify-between p-4 leading-normal">
                                                     <h5 class="mb-2 text-lg tracking-tight text-gray-900">
                                                         {{ equipment.category_name }} {{ equipment.brand_name }} {{
-                                                        equipment.model_name }}
+                                                            equipment.model_name }}
                                                     </h5>
                                                     <p class="mb-3 font-normal text-gray-600">
                                                         Placa: {{ equipment.sku }}, No. serie: {{ equipment.serial }}
@@ -509,12 +434,6 @@ onMounted(function () {
                                     <div v-if="errors.title" class="text-error">{{ errors.title }}</div>
                                 </div>
 
-                                <!--div class="mb-6">
-                                    <label for="amount" class="block tracking-wide text-sm font-medium text-gray-900 mb-1">Importe del pagaré</label>
-                                    <input type="text" v-model="form.amount" id="amount" class="appearance-none block w-full bg-gray-50 text-gray-700 border border-gray-400 rounded py-2 px-3" required />
-                                    <div v-if="errors.amount" class="text-error">{{ errors.amount }}</div>
-                                </div-->
-
                                 <div class="mb-6">
                                     <label for="start_at"
                                         class="block tracking-wide text-sm font-medium text-gray-900 mb-1">Fecha de
@@ -552,60 +471,3 @@ onMounted(function () {
 </template>
 
 
-<script>
-import { reactive } from 'vue'
-import { Inertia } from '@inertiajs/inertia'
-import VueMultiselect from 'vue-multiselect'
-
-export default {
-    components: {
-        VueMultiselect
-    },
-    //layout: AppLayout,
-    remember: 'form',
-
-    data() {
-
-        const form = reactive({
-            employment: null,
-            equipments: [],
-            start_at: null,
-            accessories: [],
-        })
-
-        return {
-            modalEmployments: false,
-            modalEquipments: false,
-            modalPhonelines: false,
-
-            selectedEmployment: null,
-            selectedEquipments: [],
-
-            form
-        }
-    },
-
-    props: {
-        data: Object,
-        errors: Object,
-        db: Object,
-    },
-
-    methods: {
-
-        store() {
-            //console.log( this.selectedEquipments );
-            this.form.equipments = this.selectedEquipments;
-            this.form.employment = this.selectedEmployment;
-
-            console.log(this.form);
-
-            Inertia.post(route('responsives.store'), this.form);
-        },
-
-    },
-
-}
-
-
-</script>
